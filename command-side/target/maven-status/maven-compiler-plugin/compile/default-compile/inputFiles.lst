@@ -1,0 +1,13 @@
+/Users/humbertocervantes/Documents/HotelPricingSystem/hotel-pricing-system/command-side/src/main/java/com/hps/command/infrastructure/persistence/entity/JpaPrice.java
+/Users/humbertocervantes/Documents/HotelPricingSystem/hotel-pricing-system/command-side/src/main/java/com/hps/command/infrastructure/persistence/repository/JpaRateRepository.java
+/Users/humbertocervantes/Documents/HotelPricingSystem/hotel-pricing-system/command-side/src/main/java/com/hps/command/infrastructure/persistence/repository/JpaPriceRepository.java
+/Users/humbertocervantes/Documents/HotelPricingSystem/hotel-pricing-system/command-side/src/main/java/com/hps/command/infrastructure/persistence/entity/JpaRoomType.java
+/Users/humbertocervantes/Documents/HotelPricingSystem/hotel-pricing-system/command-side/src/main/java/com/hps/command/domain/repository/RateRepository.java
+/Users/humbertocervantes/Documents/HotelPricingSystem/hotel-pricing-system/command-side/src/main/java/com/hps/command/domain/repository/PriceRepository.java
+/Users/humbertocervantes/Documents/HotelPricingSystem/hotel-pricing-system/command-side/src/main/java/com/hps/command/infrastructure/persistence/entity/JpaRate.java
+/Users/humbertocervantes/Documents/HotelPricingSystem/hotel-pricing-system/command-side/src/main/java/com/hps/command/api/PriceCommandController.java
+/Users/humbertocervantes/Documents/HotelPricingSystem/hotel-pricing-system/command-side/src/main/java/com/hps/command/infrastructure/persistence/adapter/JpaPriceRepositoryAdapter.java
+/Users/humbertocervantes/Documents/HotelPricingSystem/hotel-pricing-system/command-side/src/main/java/com/hps/command/CommandSideApplication.java
+/Users/humbertocervantes/Documents/HotelPricingSystem/hotel-pricing-system/command-side/src/main/java/com/hps/command/config/PriceCalculationConfig.java
+/Users/humbertocervantes/Documents/HotelPricingSystem/hotel-pricing-system/command-side/src/main/java/com/hps/command/infrastructure/persistence/adapter/RateRepositoryAdapter.java
+/Users/humbertocervantes/Documents/HotelPricingSystem/hotel-pricing-system/command-side/src/main/java/com/hps/command/application/PriceCommandService.java

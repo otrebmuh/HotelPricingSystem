@@ -1,0 +1,13 @@
+com/hps/command/domain/repository/RateRepository.class
+com/hps/command/api/PriceCommandController.class
+com/hps/command/infrastructure/persistence/entity/JpaRate.class
+com/hps/command/infrastructure/persistence/entity/JpaRoomType.class
+com/hps/command/infrastructure/persistence/repository/JpaRateRepository.class
+com/hps/command/config/PriceCalculationConfig.class
+com/hps/command/infrastructure/persistence/entity/JpaPrice.class
+com/hps/command/CommandSideApplication.class
+com/hps/command/infrastructure/persistence/repository/JpaPriceRepository.class
+com/hps/command/application/PriceCommandService.class
+com/hps/command/infrastructure/persistence/adapter/JpaPriceRepositoryAdapter.class
+com/hps/command/domain/repository/PriceRepository.class
+com/hps/command/infrastructure/persistence/adapter/RateRepositoryAdapter.class

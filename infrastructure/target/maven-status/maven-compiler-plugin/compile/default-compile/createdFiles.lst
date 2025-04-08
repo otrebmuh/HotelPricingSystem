@@ -1,0 +1,2 @@
+com/hps/infrastructure/messaging/EventPublisherImpl.class
+com/hps/infrastructure/config/RabbitMQConfig.class

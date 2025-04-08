@@ -1,0 +1,9 @@
+/Users/humbertocervantes/Documents/HotelPricingSystem/hotel-pricing-system/query-side/src/main/java/com/hps/query/readmodel/PriceView.java
+/Users/humbertocervantes/Documents/HotelPricingSystem/hotel-pricing-system/query-side/src/main/java/com/hps/query/api/PriceQueryController.java
+/Users/humbertocervantes/Documents/HotelPricingSystem/hotel-pricing-system/query-side/src/main/java/com/hps/query/infrastructure/repository/PriceViewRepository.java
+/Users/humbertocervantes/Documents/HotelPricingSystem/hotel-pricing-system/query-side/src/main/java/com/hps/query/config/PriceCalculationConfig.java
+/Users/humbertocervantes/Documents/HotelPricingSystem/hotel-pricing-system/query-side/src/main/java/com/hps/query/config/CacheConfig.java
+/Users/humbertocervantes/Documents/HotelPricingSystem/hotel-pricing-system/query-side/src/main/java/com/hps/query/application/eventhandler/PriceChangedEventHandler.java
+/Users/humbertocervantes/Documents/HotelPricingSystem/hotel-pricing-system/query-side/src/main/java/com/hps/query/QuerySideApplication.java
+/Users/humbertocervantes/Documents/HotelPricingSystem/hotel-pricing-system/query-side/src/main/java/com/hps/query/api/dto/PriceDTO.java
+/Users/humbertocervantes/Documents/HotelPricingSystem/hotel-pricing-system/query-side/src/main/java/com/hps/query/application/PriceQueryService.java

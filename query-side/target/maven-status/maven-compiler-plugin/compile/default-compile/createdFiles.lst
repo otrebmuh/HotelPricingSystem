@@ -1,0 +1,9 @@
+com/hps/query/config/CacheConfig.class
+com/hps/query/readmodel/PriceView.class
+com/hps/query/application/PriceQueryService.class
+com/hps/query/QuerySideApplication.class
+com/hps/query/infrastructure/repository/PriceViewRepository.class
+com/hps/query/config/PriceCalculationConfig.class
+com/hps/query/api/dto/PriceDTO.class
+com/hps/query/application/eventhandler/PriceChangedEventHandler.class
+com/hps/query/api/PriceQueryController.class
