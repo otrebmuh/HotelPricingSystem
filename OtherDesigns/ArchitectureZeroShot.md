@@ -1,413 +1,366 @@
-# Architecture Document
-
+# Hotel Pricing System (HPS) Architecture
 
 ## 1. Introduction
 
-This document presents the architectural design for the Hotel Pricing System (HPS) for AD&D Hotels. The system will replace the existing pricing system, addressing current reliability, performance, availability, and maintainability issues.
+This document describes the architecture for the Hotel Pricing System (HPS) for AD&D Hotels. The architecture has been designed to address the key business drivers, functional requirements, quality attributes, and constraints specified in the requirements document.
 
-The architecture is designed to satisfy the functional requirements and quality attributes specified in the requirements document, while considering the identified constraints and concerns.
+## 2. Architectural Approach
 
+Based on the requirements, we have chosen an **Event-Driven Microservices Architecture** with a **Cloud-Native** approach. This architecture supports:
 
-## 2. Context Diagram
+- Decoupling of system components to address the current integration issues
+- High availability, reliability, and performance requirements
+- Scalability for handling variable loads
+- Simplified deployment and maintenance processes
 
-The HPS interacts with several external systems and users as depicted in the following context diagram:
+## 3. High-Level Architecture
+
+### 3.1 System Context
 
 ```mermaid
 flowchart TD
-    CM[Commercial Managers] -->|Change prices/Query prices| HPS[Hotel Pricing System]
-    Admin[Administrators] -->|Manage hotels/rates/users| HPS
-    ES[External Systems] -->|Query prices| HPS
-    
-    HPS -->|Publish prices| PMS[Property Management System]
-    HPS -->|Publish prices| CMS[Channel Management System]
-    HPS -->|Publish prices| CAS[Commercial Analysis System]
-    HPS -->|Publish prices| OS[Other Systems]
-    HPS -->|Authenticate/Authorize| UIS[User Identity Service]
+    User[Sales Managers & Commercial Reps] -->|Uses| HPS[Hotel Pricing System]
+    ExternalSystems[External Systems] <-->|Queries Prices| HPS
+    HPS -->|Publishes Prices| CMS[Channel Management System]
+    HPS -->|Authenticates Users| UIS[User Identity Service]
+    HPS -->|Sends Prices| PMS[Property Management System]
+    HPS -->|Sends Prices| CAS[Commercial Analysis System]
+    HPS -->|Sends Prices| OtherSystems[Other Systems]
 ```
 
+### 3.2 Container Diagram
 
-## 3. Architectural Drivers
+```mermaid
+flowchart TD
+    User[Users] -->|Uses| WebApp[Web Application]
+    ExternalSystems[External Systems] -->|Queries| APIGateway[API Gateway]
+    
+    subgraph "Hotel Pricing System"
+        WebApp -->|Calls APIs| APIGateway
+        APIGateway -->|Routes Requests| PriceService[Price Service]
+        APIGateway -->|Routes Requests| HotelService[Hotel Service]
+        APIGateway -->|Routes Requests| RateService[Rate Service]
+        APIGateway -->|Routes Requests| UserService[User Service]
+        
+        PriceService <-->|Reads/Writes| PriceDB[(Price DB)]
+        HotelService <-->|Reads/Writes| HotelDB[(Hotel DB)]
+        RateService <-->|Reads/Writes| RateDB[(Rate DB)]
+        UserService -->|Verifies| IDService[Identity Service]
+        
+        PriceService -->|Publishes Events| EventBus[Event Bus]
+        HotelService -->|Publishes Events| EventBus
+        RateService -->|Publishes Events| EventBus
+        
+        PriceCalculator[Price Calculator Service] -->|Subscribes| EventBus
+        PricePublisher[Price Publisher Service] -->|Subscribes| EventBus
+        Monitor[Monitoring Service] -->|Subscribes| EventBus
+        
+        PriceCalculator <-->|Reads/Writes| PriceDB
+    end
+    
+    PricePublisher -->|Sends Prices| CMS[Channel Management System]
+    PricePublisher -->|Sends Prices| PMS[Property Management System]
+    PricePublisher -->|Sends Prices| CAS[Commercial Analysis System]
+    PricePublisher -->|Sends Prices| OtherSystems[Other Systems]
+```
 
+## 4. Component Architecture
 
-### User Stories
+### 4.1 Web Application
 
-The primary user stories driving the architecture design are:
+A Single Page Application (SPA) built with Angular, providing user interfaces for:
+- Hotel price management
+- Hotel configuration management
+- Rate management
+- User management
 
-1. **HPS-1: Log In** - Users authenticate through the User Identity Service
-2. **HPS-2: Change Prices** - Users modify base or fixed rates for specific hotels and dates
-3. **HPS-3: Query Prices** - Users and external systems query hotel prices
-4. **HPS-4: Manage Hotels** - Administrators manage hotel information
-5. **HPS-5: Manage Rates** - Administrators define and modify rates
-6. **HPS-6: Manage Users** - Administrators manage user permissions
+### 4.2 API Gateway
 
-The primary user stories identified as highest priority are HPS-2, HPS-3, and HPS-4.
+Acts as a single entry point for client-side applications and external systems, providing:
+- Request routing
+- Protocol translation
+- Authentication and authorization
+- Rate limiting
+- Request/response logging
 
+### 4.3 Core Services
 
-### Quality Attribute Scenarios
+#### 4.3.1 Price Service
+- Handles price modification requests
+- Manages price data
+- Publishes price change events
 
-The primary quality attributes driving the architecture are:
+#### 4.3.2 Hotel Service
+- Manages hotel information
+- Handles hotel configurations
+- Publishes hotel update events
 
-1. **Performance (QA-1)**: Price changes must be published in less than 100ms
-2. **Reliability (QA-2)**: 100% of price changes must be published successfully
-3. **Availability (QA-3)**: 99.9% uptime SLA for pricing queries
-4. **Scalability (QA-4)**: Support for up to 1,000,000 price queries per day
-5. **Security (QA-5)**: User authentication and authorization
+#### 4.3.3 Rate Service
+- Manages rate definitions
+- Defines calculation rules
+- Publishes rate update events
 
-Additional quality attributes:
-- **Modifiability (QA-6)**: Support for different protocols
-- **Deployability (QA-7)**: Environment-independent deployment
-- **Monitorability (QA-8)**: Performance and reliability monitoring
-- **Testability (QA-9)**: Support for integration testing independent of external systems
+#### 4.3.4 User Service
+- Manages user permissions
+- Integrates with Identity Service
+- Enforces hotel-level access control
 
+### 4.4 Supporting Services
 
-### Constraints
+#### 4.4.1 Price Calculator Service
+- Subscribes to price, hotel, and rate events
+- Calculates derived prices based on business rules
+- Publishes calculated price events
 
-1. **CON-1**: Web browser compatibility across platforms and devices
-2. **CON-2**: Cloud-based hosting and identity service
-3. **CON-3**: Proprietary Git-based platform for code hosting
-4. **CON-4**: Initial release in 6 months, MVP in 2 months
-5. **CON-5**: Initial REST API support with potential for other protocols
-6. **CON-6**: Cloud-native approach
+#### 4.4.2 Price Publisher Service
+- Subscribes to price events
+- Distributes prices to external systems
+- Ensures reliable delivery
+- Handles protocol transformations
 
+#### 4.4.3 Monitoring Service
+- Collects metrics from all services
+- Provides operational insights
+- Tracks performance and reliability metrics
 
-### Architectural Concerns
+## 5. Data Architecture
 
-1. **CRN-1**: Establish initial system structure
-2. **CRN-2**: Leverage team's knowledge of Java and Angular
-3. **CRN-3**: Allocate work to team members
-4. **CRN-4**: Avoid technical debt
-5. **CRN-5**: Set up continuous deployment infrastructure
-
-
-## 4. Domain Model
+### 5.1 Data Model
 
 ```mermaid
 classDiagram
     class Hotel {
-        +id: String
-        +name: String
-        +location: String
-        +taxRate: Decimal
-        +addRoomType(RoomType)
-        +removeRoomType(RoomType)
+        +String id
+        +String name
+        +String location
+        +List~RoomType~ roomTypes
+        +TaxRate taxRate
     }
     
     class RoomType {
-        +id: String
-        +name: String
-        +description: String
+        +String id
+        +String name
+        +String description
     }
     
     class Rate {
-        +id: String
-        +name: String
-        +type: RateType
-        +calculationRule: CalculationRule
-    }
-    
-    class RateType {
-        <<enumeration>>
-        BASE
-        FIXED
-        CALCULATED
-    }
-    
-    class CalculationRule {
-        +formula: String
-        +calculate(BaseRate) Decimal
+        +String id
+        +String name
+        +RateType type
+        +CalculationRule calculationRule
     }
     
     class Price {
-        +id: String
-        +value: Decimal
-        +date: Date
-        +status: PriceStatus
-    }
-    
-    class PriceStatus {
-        <<enumeration>>
-        DRAFT
-        PUBLISHED
+        +String id
+        +String hotelId
+        +String roomTypeId
+        +String rateId
+        +Date date
+        +Decimal amount
+        +PriceStatus status
     }
     
     class User {
-        +id: String
-        +name: String
-        +role: UserRole
-        +assignHotel(Hotel)
-        +removeHotel(Hotel)
+        +String id
+        +String name
+        +String email
+        +List~Permission~ permissions
     }
     
-    class UserRole {
-        <<enumeration>>
-        ADMIN
-        COMMERCIAL
+    class Permission {
+        +String hotelId
+        +PermissionType type
     }
     
-    Hotel "1" *-- "many" RoomType
-    Hotel "1" -- "many" Price
-    RoomType "1" -- "many" Price
-    Rate "1" -- "many" Price
-    User "many" -- "many" Hotel
+    Hotel "1" --> "*" RoomType
+    Price "*" --> "1" Hotel
+    Price "*" --> "1" RoomType
+    Price "*" --> "1" Rate
+    User "1" --> "*" Permission
 ```
 
+### 5.2 Database Strategy
 
-### Domain Model Description
+- Each microservice has its own database to ensure loose coupling
+- PostgreSQL for relational data (Hotels, Rates, Users)
+- Redis for caching frequently accessed data (Price queries)
+- Event sourcing pattern for tracking price changes
 
-- **Hotel**: Represents a hotel with its properties, including location and tax rate
-- **RoomType**: Different types of rooms available in a hotel
-- **Rate**: Different pricing rates (base, fixed, calculated)
-- **CalculationRule**: Business rules for calculating derived rates
-- **Price**: The actual price for a specific hotel, room, rate, and date
-- **User**: System users with assigned roles and hotel permissions
+## 6. Technology Stack
 
+### 6.1 Backend
+- Java with Spring Boot for microservices
+- Spring Cloud for cloud-native patterns
+- Spring Data JPA for data access
+- Spring Security for authentication/authorization
 
-### Relationships
+### 6.2 Frontend
+- Angular framework (as per CRN-2)
+- Material UI for responsive design
+- Redux for state management
 
-- A Hotel has multiple RoomTypes
-- A Hotel has multiple Prices for different dates, room types, and rates
-- A Rate can be associated with multiple Prices
-- Users are assigned to specific Hotels they can manage
+### 6.3 Infrastructure
+- Containerization with Docker
+- Orchestration with Kubernetes
+- Message broker: Apache Kafka for event bus
+- API Gateway: Spring Cloud Gateway
+- Service Mesh: Istio for advanced networking
 
+### 6.4 DevOps
+- CI/CD: Jenkins pipelines
+- Infrastructure as Code: Terraform
+- Monitoring: Prometheus and Grafana
+- Logging: ELK Stack (Elasticsearch, Logstash, Kibana)
 
-## 5. Container Diagram
+## 7. Cross-Cutting Concerns
+
+### 7.1 Security
 
 ```mermaid
 flowchart TD
-    UI[Web UI\nAngular] -->|HTTP/JSON| API[API Gateway\nSpring Cloud Gateway]
-    
-    API -->|HTTP/JSON| PS[Price Service\nSpring Boot]
-    API -->|HTTP/JSON| HS[Hotel Service\nSpring Boot]
-    API -->|HTTP/JSON| RS[Rate Service\nSpring Boot]
-    API -->|HTTP/JSON| US[User Service\nSpring Boot]
-    
-    PS -->|Events| MB[Message Broker\nKafka]
-    HS -->|Events| MB
-    RS -->|Events| MB
-    US -->|Events| MB
-    
-    PS -->|Read/Write| PDB[(Price Database\nPostgreSQL)]
-    HS -->|Read/Write| HDB[(Hotel Database\nPostgreSQL)]
-    RS -->|Read/Write| RDB[(Rate Database\nPostgreSQL)]
-    US -->|Read/Write| UDB[(User Database\nPostgreSQL)]
-    
-    PS -->|Read| Cache[(Cache\nRedis)]
-    HS -->|Read| Cache
-    RS -->|Read| Cache
-    
-    NP[Notification Processor\nSpring Boot] -->|Subscribe| MB
-    
-    CM[Configuration Management\nSpring Cloud Config] --> PS
-    CM --> HS
-    CM --> RS
-    CM --> US
-    CM --> NP
-    
-    Monitoring[Monitoring System\nPrometheus/Grafana] --> PS
-    Monitoring --> HS
-    Monitoring --> RS
-    Monitoring --> US
-    Monitoring --> NP
-    
-    ExternalSystems[External Systems] -->|HTTP/JSON| API
-    MB -->|Publish Prices| ExternalSystems
-    UIS[User Identity Service] <-->|OAuth/OIDC| API
+    User[User] -->|1. Login| WebApp[Web Application]
+    WebApp -->|2. Auth Request| APIGateway[API Gateway]
+    APIGateway -->|3. Validate Credentials| IDService[Identity Service]
+    IDService -->|4. JWT Token| APIGateway
+    APIGateway -->|5. JWT Token| WebApp
+    WebApp -->|6. Requests with JWT| APIGateway
+    APIGateway -->|7. Check Token| APIGateway
+    APIGateway -->|8. Authorized Request| Services[Microservices]
 ```
 
+- JWT-based authentication
+- Role-based access control
+- Hotel-level permissions
+- HTTPS for all communications
+- Secrets management with a secure vault
 
-### Container Responsibilities
+### 7.2 Resilience
 
-- **Web UI**: Angular-based frontend for user interaction
-- **API Gateway**: Entry point for all client requests, handles routing, authentication, and load balancing
-- **Services**:
-  - **Price Service**: Core service for price management and calculations
-  - **Hotel Service**: Manages hotel information, room types, and related data
-  - **Rate Service**: Manages rate definitions and calculation rules
-  - **User Service**: Manages user permissions for hotels
-- **Message Broker**: Kafka for event-driven communication and price publication
-- **Notification Processor**: Processes events and notifies external systems
-- **Databases**: PostgreSQL databases for persistent storage, separated by domain
-- **Cache**: Redis for caching frequently accessed data
-- **Configuration Management**: Centralized configuration for all services
-- **Monitoring System**: Prometheus and Grafana for system monitoring
+- Circuit breaker patterns to prevent cascading failures
+- Retry mechanisms with exponential backoff
+- Rate limiting to protect against traffic spikes
+- Graceful degradation when external systems are unavailable
+- Distributed tracing for issue identification
 
+### 7.3 Scalability
 
-## 6. Component Diagrams
+- Horizontal scaling of individual services
+- Auto-scaling based on traffic patterns
+- Database read replicas for query-heavy services
+- Caching for frequently accessed data
+- Asynchronous processing for non-critical operations
 
-### Price Service Components
+## 8. Deployment Architecture
 
 ```mermaid
 flowchart TD
-    RAPI[REST API] --> PC[Price Controller]
-    PC --> PM[Price Manager]
-    PM --> PCal[Price Calculator]
-    PM --> PR[Price Repository]
-    PM --> PEP[Price Event Publisher]
-    PM --> CM[Cache Manager]
-    
-    PR --> DB[Database]
-    PEP --> MQ[Message Queue]
-    CM --> C[Cache]
-```
-
-### Hotel Service Components
-
-```mermaid
-flowchart TD
-    RAPI[REST API] --> HC[Hotel Controller]
-    HC --> HM[Hotel Manager]
-    HM --> RTM[Room Type Manager]
-    HM --> HR[Hotel Repository]
-    HM --> HEP[Hotel Event Publisher]
-    HM --> CM[Cache Manager]
-    
-    HR --> DB[Database]
-    HEP --> MQ[Message Queue]
-    CM --> C[Cache]
-```
-
-
-## 7. Sequence Diagrams
-
-### Price Change Sequence
-
-```mermaid
-sequenceDiagram
-    actor User
-    participant UI as Web UI
-    participant Gateway as API Gateway
-    participant Price as Price Service
-    participant Calculator as Price Calculator
-    participant Cache as Redis Cache
-    participant DB as Price Database
-    participant Events as Kafka
-    participant CMS as Channel Management System
-    
-    User->>UI: Change base rate
-    UI->>Gateway: HTTP POST /prices
-    Gateway->>Price: Forward request
-    Price->>Calculator: Calculate affected prices
-    Calculator-->>Price: Return calculated prices
-    Price->>DB: Store price changes
-    Price->>Cache: Update cached prices
-    Price->>Events: Publish price change events
-    Events->>CMS: Notify of price changes
-    Price-->>Gateway: Return success
-    Gateway-->>UI: Forward response
-    UI-->>User: Show confirmation
-```
-
-### Price Query Sequence
-
-```mermaid
-sequenceDiagram
-    actor User
-    participant UI as Web UI
-    participant Gateway as API Gateway
-    participant Price as Price Service
-    participant Cache as Redis Cache
-    participant DB as Price Database
-    
-    User->>UI: Query prices
-    UI->>Gateway: HTTP GET /prices?hotel=id&date=value
-    Gateway->>Price: Forward request
-    Price->>Cache: Check cache for prices
-    alt Cache hit
-        Cache-->>Price: Return cached prices
-    else Cache miss
-        Price->>DB: Query database
-        DB-->>Price: Return prices
-        Price->>Cache: Update cache
+    subgraph "Development Environment"
+        DevEnv[Local Development]
     end
-    Price-->>Gateway: Return prices
-    Gateway-->>UI: Forward response
-    UI-->>User: Display prices
+    
+    subgraph "Integration Environment"
+        IntK8s[Kubernetes Cluster]
+        IntMocks[External System Mocks]
+    end
+    
+    subgraph "Staging Environment"
+        StagingK8s[Kubernetes Cluster]
+        TestExtSystems[Test External Systems]
+    end
+    
+    subgraph "Production Environment"
+        ProdK8s[Kubernetes Cluster]
+        RealExtSystems[Real External Systems]
+    end
+    
+    DevEnv -->|Git Push| CICD[CI/CD Pipeline]
+    CICD -->|Deploy| IntK8s
+    CICD -->|Promote| StagingK8s
+    CICD -->|Release| ProdK8s
 ```
 
+- Containerized deployment in Kubernetes
+- Blue/Green deployment strategy for zero-downtime updates
+- Infrastructure as Code for environment consistency
+- Automated testing at all stages of the pipeline
+- Canary releases for risk reduction
 
-## 8. Interfaces
+## 9. How the Architecture Addresses Requirements
 
-The system provides the following interfaces:
+### 9.1 Functional Requirements
 
-1. **REST API for Web UI and External Systems**
-   - `/api/v1/prices` - Price management
-   - `/api/v1/hotels` - Hotel management
-   - `/api/v1/rates` - Rate management
-   - `/api/v1/users` - User management
+| Requirement | Architectural Support |
+|-------------|----------------------|
+| HPS-1: Log In | Integration with User Identity Service via User Service |
+| HPS-2: Change Prices | Price Service with event publication, calculation via Price Calculator |
+| HPS-3: Query Prices | API Gateway with caching for high-performance queries |
+| HPS-4: Manage Hotels | Hotel Service with dedicated API and database |
+| HPS-5: Manage Rates | Rate Service with business rule management |
+| HPS-6: Manage Users | User Service with permission management |
 
-2. **Event-Based Interface**
-   - `price-changes` - Price change events for external systems
-   - `hotel-updates` - Hotel information updates
-   - `rate-updates` - Rate configuration updates
+### 9.2 Quality Attributes
 
-3. **Authentication Interface**
-   - OAuth 2.0/OIDC integration with User Identity Service
+| Quality Attribute | Architectural Support |
+|-------------------|----------------------|
+| QA-1: Performance | Event-driven architecture, caching, asynchronous processing |
+| QA-2: Reliability | Guaranteed message delivery, event sourcing, retry mechanisms |
+| QA-3: Availability | Kubernetes orchestration, multiple replicas, circuit breakers |
+| QA-4: Scalability | Horizontal scaling, auto-scaling, microservices isolation |
+| QA-5: Security | JWT authentication, RBAC, hotel-level permissions |
+| QA-6: Modifiability | Microservices isolation, API Gateway with protocol translation |
+| QA-7: Deployability | Containerization, CI/CD automation, environment parity |
+| QA-8: Monitorability | Centralized logging, metrics collection, distributed tracing |
+| QA-9: Testability | Service isolation, mock integration, contract testing |
 
+### 9.3 Constraints
 
-## 9. Event Definitions
+| Constraint | Architectural Support |
+|------------|----------------------|
+| CON-1: Cross-platform web access | Angular SPA with responsive design |
+| CON-2: Cloud hosting & identity | Cloud-native design with Identity Service integration |
+| CON-3: Git platform | CI/CD integration with Git-based workflows |
+| CON-4: Delivery timeline | Microservices allowing parallel development and incremental delivery |
+| CON-5: Protocol support | API Gateway with protocol translation capabilities |
+| CON-6: Cloud-native approach | Containerization, orchestration, managed services |
 
-1. **PriceChanged**
-   - `hotelId`: Hotel identifier
-   - `roomTypeId`: Room type identifier
-   - `rateId`: Rate identifier
-   - `date`: Date of the price
-   - `value`: New price value
-   - `previousValue`: Previous price value
-   - `timestamp`: Time of change
-   - `userId`: User who made the change
+### 9.4 Architectural Concerns
 
-2. **HotelUpdated**
-   - `hotelId`: Hotel identifier
-   - `changes`: Map of changed properties
-   - `timestamp`: Time of change
-   - `userId`: User who made the change
+| Concern | Architectural Support |
+|---------|----------------------|
+| CRN-1: System structure | Well-defined microservices with clear boundaries |
+| CRN-2: Java & Angular | Technology stack selection aligned with team skills |
+| CRN-3: Work allocation | Independent services allowing team allocation by domain |
+| CRN-4: Technical debt | Clean architecture, automated testing, code quality tools |
+| CRN-5: Continuous deployment | CI/CD pipeline with automated testing and deployment |
 
-3. **RateUpdated**
-   - `rateId`: Rate identifier
-   - `changes`: Map of changed properties
-   - `timestamp`: Time of change
-   - `userId`: User who made the change
+## 10. Implementation Strategy
 
+### 10.1 Phased Approach
 
-## 10. Design Decisions
+**Phase 1 (MVP - 2 months):**
+- Core price management functionality
+- Basic hotel management
+- Essential API endpoints for price queries
+- Simple UI for price changes
+- Minimal integration with external systems
 
-1. **Microservices Architecture**
-   - **Decision**: Adopt a microservices architecture
-   - **Rationale**: Supports high availability, scalability, independent deployment, and enables compliance with QA-3, QA-4, QA-6, and QA-7
-   - **Consequences**: Increased operational complexity, distributed transaction challenges
+**Phase 2 (4 months):**
+- Complete rate management
+- Advanced calculation rules
+- Full integration with all external systems
+- Comprehensive UI
+- Advanced monitoring and operations
 
-2. **Event-Driven Communication**
-   - **Decision**: Use Kafka for event-driven communication between services and external systems
-   - **Rationale**: Decouples systems, improves reliability, and addresses QA-2 and QA-3
-   - **Consequences**: Eventual consistency model, potential message duplication
+### 10.2 Development Priorities
 
-3. **Caching Strategy**
-   - **Decision**: Implement Redis caching for frequently accessed price data
-   - **Rationale**: Improves performance (QA-1), supports scalability (QA-4)
-   - **Consequences**: Cache invalidation complexity, additional infrastructure
+1. Set up CI/CD pipeline and infrastructure
+2. Develop Price Service and Price Calculator
+3. Create basic UI for price management
+4. Implement API Gateway for price queries
+5. Develop Hotel and Rate Services
+6. Build monitoring and reliability features
+7. Enhance security and access control
 
-4. **API Gateway Pattern**
-   - **Decision**: Implement an API Gateway as the single entry point
-   - **Rationale**: Centralizes authentication, routing, and load balancing; supports QA-5, QA-6
-   - **Consequences**: Potential single point of failure, requires high availability configuration
+## 11. Conclusion
 
-5. **Database per Service**
-   - **Decision**: Each microservice has its own database
-   - **Rationale**: Supports independent scaling and deployment, prevents coupling through shared database
-   - **Consequences**: Data duplication, distributed query challenges
-
-6. **Cloud-Native Deployment**
-   - **Decision**: Deploy as containerized services with Kubernetes
-   - **Rationale**: Supports CON-6, QA-7, enables horizontal scaling
-   - **Consequences**: Additional complexity in infrastructure management
-
-7. **Comprehensive Monitoring**
-   - **Decision**: Implement distributed tracing, metrics collection, and logging
-   - **Rationale**: Addresses QA-8, helps identify performance bottlenecks and reliability issues
-   - **Consequences**: Additional infrastructure, potential performance impact
-
-8. **Technology Stack**
-   - **Decision**: Use Spring Boot for backend, Angular for frontend
-   - **Rationale**: Aligns with team's expertise (CRN-2), supports required functionality
-   - **Consequences**: Learning curve for team members not familiar with these technologies
-
+The proposed event-driven microservices architecture provides a robust solution for the Hotel Pricing System that addresses all functional requirements, quality attributes, and constraints. The architecture's focus on decoupling, event-driven communication, and cloud-native design principles will enable AD&D Hotels to overcome the challenges with their existing system while providing a foundation for future growth and enhancements. 
